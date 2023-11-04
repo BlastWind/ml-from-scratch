@@ -49,7 +49,13 @@ class Layer():
 		self.output_size = output_size
 		self.activation_function = activation_function
 		self.weights = weight_initialization_function((input_size, output_size))
-		self.bias = bias_initialization_function(input_size)
+		self.bias = bias_initialization_function(output_size)
+		self.last_activation = np.zeros(output_size)
+
+	def forward(self, input: NDArray):
+		activation = np.matmul(self.weights, input) + self.bias
+		self.last_activation = activation
+		return self.activation_function(activation)
 
 
 class Network():
@@ -66,24 +72,34 @@ class Network():
 		return True
 	
 	def forward(self, inputs: NDArray):
-		def compute(xs: NDArray, layer: Layer):
-			# print(layer.weights.shape, xs.shape)
-			return np.matmul(layer.weights, xs)
-		return reduce(compute, self.layers, inputs)
+		return reduce(lambda xs, l: l.forward(xs), self.layers, inputs)
 
-	def train(self, data: List[Tuple[NDArray, NDArray]], cost_function: Callable[[NDArray, NDArray], float], learning_rate: float, regularization_parameter: float, save_path: str):
+	def train(self, data: List[Tuple[NDArray, NDArray]], cost_function: Callable[[NDArray, NDArray], float], learning_rate: float, regularization_parameter: float,  epochs: int, save_path: str):
 		'''Trains a network using the specified `data`, then outputs it somewhere...
 
 		Args:
 			data: A list of pairs of training input and output.
-			cost_function: Takes in the network output and ground truth to produce the scalar cost.
+			cost_function: Takes in the network output and ground truth to produce the scalar cost. Operates on just one result.
 			regularization_parameter: Note, networks always train using L2 Regularization, whose only parameter you provide 
 			(usually on a logarithmic scale, i.e., 0.01, 0.1, 1, 10, ...), value depends on k-fold cross-validation results.
 		'''
+		if len(data) == 0: return 
+
+		for _ in range(epochs):
+			total_cost = 0
+			
+			# forward, get cost
+			for (x, y_true) in data:
+				y_pred = self.forward(x)
+				total_cost += cost_function(y_pred, y_true)
+
+			# backward, update weights
+			total_cost = (total_cost / len(data)) + regularization_parameter / 2 * sum(np.sum(np.square(layer.weights)) for layer in self.layers) 
 
 
 layers = [Layer(4, 20, leaky_relu, uniform_sample), Layer(20, 10, leaky_relu, uniform_sample), Layer(10, 2, softmax, uniform_sample)]
 n = Network(layers)
 n.validate()
-res = n.forward(np.array([1, 2, 3, 4]))
-print(res.shape)
+# print(res.shape)
+
+n.train([(np.random.random(4), np.random.random(2)), (np.random.random(4), np.random.random(2)), (np.random.random(4), np.random.random(2))], cost_function=mse, learning_rate=0.05, regularization_parameter=0, epochs=1, save_path="")
