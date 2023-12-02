@@ -5,5 +5,5 @@ I plan to build the following from scratch in preparation for getting into Mecha
 1. MLP (use Numpy only) for MNIST.
 2. Transformer from scratch (Can use PyTorch)
 3. PCA, SVD
-4. Recommender System
+4. Sparse Encoder (Dictionary Learning)
 5. Reinforcement Learning stuff
